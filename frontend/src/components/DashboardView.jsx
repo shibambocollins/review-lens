@@ -57,7 +57,7 @@ const handleExportPDF = async () => {
       setIsExporting(false);
     }
   };
-  
+
   const handleShare = async () => {
     const shareData = {
       title: `${business.name} - ReviewLens Analysis`,
@@ -92,8 +92,8 @@ const handleExportPDF = async () => {
           <button onClick={handleShare} className="flex items-center px-4 py-2 bg-[#FFFFFF] border border-[#6B705C]/30 rounded-lg text-[#2B2B2B]/90 hover:bg-[#FAF8F3] transition-colors shadow-sm font-medium">
             <Share2 size={18} className="mr-2 text-[#6B705C]" /> Share
           </button>
-          <button onClick={handleExportPDF} className="flex items-center px-4 py-2 bg-[#2D6A4F] text-[#FFFFFF] rounded-lg hover:bg-[#1e4735] transition-colors shadow-sm font-medium">
-            <Download size={18} className="mr-2" /> Export Report
+         <button onClick={handleExportPDF} disabled={isExporting} className="flex items-center px-4 py-2 bg-[#2D6A4F] text-[#FFFFFF] rounded-lg hover:bg-[#1e4735] transition-colors shadow-sm font-medium disabled:opacity-50">
+            <Download size={18} className="mr-2" /> {isExporting ? 'Generating PDF...' : 'Export Report'}
           </button>
         </div>
       </div>
