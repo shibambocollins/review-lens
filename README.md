@@ -62,7 +62,7 @@ curl http://localhost:5000/api/health
 ```bash
 cd frontend
 cp .env.example .env   # VITE_API_URL defaults to http://localhost:5000/api, fine for local dev
-npm install
+ run dev
 npm run dev 
 ```
 
