@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   Star, MessageSquare, TrendingUp, MapPin,
   ThumbsUp, ThumbsDown, CheckCircle,
