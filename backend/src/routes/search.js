@@ -1,21 +1,33 @@
-import { Router } from 'express';
-import { generateAnalysis } from '../services/aiFallback.js';
-import { liveSearchPrompt } from '../services/prompts.js';
+import { Router } from "express";
+import { generateAnalysis } from "../services/aiFallback.js";
+import { liveSearchPrompt } from "../services/prompts.js";
 
 const router = Router();
 
 // POST /api/search  { query: string }
-router.post('/', async (req, res, next) => {
+router.post("/", async (req, res, next) => {
   try {
     const { query } = req.body;
     if (!query || !query.trim()) {
-      return res.status(400).json({ error: 'query is required' });
+      return res.status(400).json({ error: "query is required" });
     }
 
-    const { prompt, geminiSchema, schemaInstructions } = liveSearchPrompt(query);
-    const { data, provider } = await generateAnalysis({ prompt, geminiSchema, schemaInstructions });
+    const { prompt, geminiSchema, schemaInstructions } =
+      liveSearchPrompt(query);
+    const { data, provider } = await generateAnalysis({
+      prompt,
+      geminiSchema,
+      schemaInstructions,
+      order: ["groq", "gemini", "cloudflare"], // Groq first: fastest for per-keystroke search
+    });
 
-    res.json({ results: Array.isArray(data) ? data : [], provider });
+    const results = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.results)
+        ? data.results
+        : [];
+
+    res.json({ results, provider });
   } catch (err) {
     next(err);
   }
