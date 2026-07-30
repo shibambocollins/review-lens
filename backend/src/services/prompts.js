@@ -22,8 +22,8 @@ export function liveSearchPrompt(query) {
     },
   };
 
-  const schemaInstructions = `A JSON array of 4-6 objects, each with exactly these fields:
-{ "id": string, "name": string, "category": string, "address": string, "rating": number (out of 5), "reviewCount": integer, "shortDescription": string }`;
+const schemaInstructions = `A single JSON object with exactly one field, "results", containing an array of 4-6 objects:
+{ "results": [ { "id": string, "name": string, "category": string, "address": string, "rating": number (out of 5), "reviewCount": integer, "shortDescription": string }, ... ] }`;
 
   return { prompt, geminiSchema, schemaInstructions };
 }
