@@ -18,6 +18,8 @@ import { COLORS } from '../data/colors.js';
 
 export const DashboardView = ({ business, onBack, onCompare, triggerToast }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef(null);
 
   const handleExportPDF = () => {
     triggerToast('Preparing PDF Report... (Opening Print Dialog)');
