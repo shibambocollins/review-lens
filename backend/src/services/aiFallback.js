@@ -2,38 +2,33 @@ import { generateWithGemini } from './aiProviders/gemini.js';
 import { generateWithGroq } from './aiProviders/groq.js';
 import { generateWithCloudflare } from './aiProviders/cloudflare.js';
 
+const PROVIDERS = {
+  gemini: (prompt, geminiSchema) => generateWithGemini(prompt, geminiSchema),
+  groq: (prompt, geminiSchema, schemaInstructions) => generateWithGroq(prompt, schemaInstructions),
+  cloudflare: (prompt, geminiSchema, schemaInstructions) => generateWithCloudflare(prompt, schemaInstructions),
+};
+
 /**
- * Runs prompt through Gemini -> Groq -> Cloudflare Workers AI, in order,
- * returning the first successful parsed JSON result.
- *
+ * Runs prompt through providers in the given order, returning the first success.
  * @param {object} params
- * @param {string} params.prompt - the task prompt
- * @param {object} params.geminiSchema - Gemini-native responseSchema object
- * @param {string} params.schemaInstructions - plain-text schema description for Groq/Cloudflare
- * @returns {Promise<{data: object, provider: string}>}
+ * @param {string} params.prompt
+ * @param {object} params.geminiSchema
+ * @param {string} params.schemaInstructions
+ * @param {string[]} [params.order] - provider order; defaults to gemini -> groq -> cloudflare
  */
-export async function generateAnalysis({ prompt, geminiSchema, schemaInstructions }) {
+export async function generateAnalysis({ prompt, geminiSchema, schemaInstructions, order = ['gemini', 'groq', 'cloudflare'] }) {
   const attempts = [];
 
-  try {
-    const data = await generateWithGemini(prompt, geminiSchema);
-    return { data, provider: 'gemini' };
-  } catch (err) {
-    attempts.push(`gemini: ${err.message}`);
-  }
-
-  try {
-    const data = await generateWithGroq(prompt, schemaInstructions);
-    return { data, provider: 'groq' };
-  } catch (err) {
-    attempts.push(`groq: ${err.message}`);
-  }
-
-  try {
-    const data = await generateWithCloudflare(prompt, schemaInstructions);
-    return { data, provider: 'cloudflare' };
-  } catch (err) {
-    attempts.push(`cloudflare: ${err.message}`);
+  for (const name of order) {
+    const run = PROVIDERS[name];
+    if (!run) continue;
+    try {
+      const data = await run(prompt, geminiSchema, schemaInstructions);
+      return { data, provider: name };
+    } catch (err) {
+      console.warn(`[ReviewLens] ${name} failed: ${err.message}`);
+      attempts.push(`${name}: ${err.message}`);
+    }
   }
 
   const error = new Error(`All AI providers failed:\n${attempts.join('\n')}`);
