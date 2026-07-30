@@ -21,13 +21,43 @@ export const DashboardView = ({ business, onBack, onCompare, triggerToast }) => 
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef(null);
 
-  const handleExportPDF = () => {
-    triggerToast('Preparing PDF Report... (Opening Print Dialog)');
-    setTimeout(() => {
-      window.print();
-    }, 1000);
-  };
+const handleExportPDF = async () => {
+    setIsExporting(true);
+    triggerToast('Generating PDF report...');
+    const originalTab = activeTab;
+    const tabs = ['overview', 'aspects', 'reviews'];
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
 
+    try {
+      for (let i = 0; i < tabs.length; i++) {
+        setActiveTab(tabs[i]);
+        // let React finish re-rendering the new tab before we screenshot it
+        await new Promise((resolve) => setTimeout(resolve, 350));
+
+        const canvas = await html2canvas(reportRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#FAF8F3',
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+      }
+
+      pdf.save(`${business.name.replace(/\s+/g, '_')}_ReviewLens_Report.pdf`);
+      triggerToast('PDF report downloaded!');
+    } catch (err) {
+      console.error(err);
+      triggerToast('Failed to generate PDF report.', 'error');
+    } finally {
+      setActiveTab(originalTab);
+      setIsExporting(false);
+    }
+  };
+  
   const handleShare = async () => {
     const shareData = {
       title: `${business.name} - ReviewLens Analysis`,
