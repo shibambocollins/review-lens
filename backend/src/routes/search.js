@@ -7,13 +7,16 @@ const router = Router();
 // POST /api/search  { query: string }
 router.post("/", async (req, res, next) => {
   try {
-    const { query } = req.body;
+    const { query, lat, lng } = req.body;
     if (!query || !query.trim()) {
       return res.status(400).json({ error: "query is required" });
     }
 
+    const coords =
+      Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+
     const { prompt, geminiSchema, schemaInstructions } =
-      liveSearchPrompt(query);
+      liveSearchPrompt(query, coords);
     const { data, provider } = await generateAnalysis({
       prompt,
       geminiSchema,

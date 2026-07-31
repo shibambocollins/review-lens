@@ -13,6 +13,9 @@ export const HomeView = ({
   onSelectBusiness,
   searchResults,
   mockBusinesses,
+  locationStatus,
+  onRequestLocation,
+  onClearLocation,
 }) => {
   const businessesToShow = searchResults.length > 0 ? searchResults : mockBusinesses;
 
@@ -56,6 +59,34 @@ export const HomeView = ({
             </button>
           </form>
 
+          {locationStatus && locationStatus !== 'unsupported' && (
+            <div className="mt-3 flex justify-center">
+              {locationStatus === 'granted' && (
+                <button
+                  type="button"
+                  onClick={onClearLocation}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2D6A4F] bg-[#2D6A4F]/10 border border-[#2D6A4F]/20 px-3 py-1.5 rounded-full hover:bg-[#2D6A4F]/15 transition-colors"
+                >
+                  <MapPin size={12} /> Showing results near you
+                </button>
+              )}
+              {locationStatus === 'pending' && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6B705C] bg-[#6B705C]/10 px-3 py-1.5 rounded-full">
+                  <Loader2 size={12} className="animate-spin" /> Detecting your location...
+                </span>
+              )}
+              {(locationStatus === 'idle' || locationStatus === 'denied') && (
+                <button
+                  type="button"
+                  onClick={onRequestLocation}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6B705C] bg-[#6B705C]/10 border border-[#6B705C]/20 px-3 py-1.5 rounded-full hover:bg-[#6B705C]/20 transition-colors"
+                >
+                  <MapPin size={12} /> {locationStatus === 'denied' ? 'Location blocked — click to retry' : 'Search near me'}
+                </button>
+              )}
+            </div>
+          )}
+
           {showDropdown && searchQuery && (
             <div className="absolute top-full left-0 right-0 mt-3 bg-[#FFFFFF] rounded-2xl shadow-xl border border-[#6B705C]/20 overflow-hidden z-50 text-left animate-fade-in-up">
               {isLiveSearching ? (
@@ -66,7 +97,10 @@ export const HomeView = ({
                     <li key={biz.id} onClick={() => onSelectBusiness(biz)} className="p-4 hover:bg-[#FAF8F3] cursor-pointer flex justify-between items-center group transition-colors">
                       <div className="flex-1 pr-4">
                         <div className="font-extrabold text-[#2B2B2B] text-base group-hover:text-[#2D6A4F] transition-colors">{biz.name}</div>
-                        <div className="text-sm font-semibold text-[#6B705C]">{biz.category} • {biz.address}</div>
+                        <div className="text-sm font-semibold text-[#6B705C]">
+                          {biz.category} • {biz.address}
+                          {typeof biz.distanceKm === 'number' && ` · ${biz.distanceKm.toFixed(1)} km away`}
+                        </div>
                       </div>
                       <div className="flex items-center text-[#2B2B2B] text-sm font-bold shrink-0 bg-[#FAF8F3] border border-[#6B705C]/20 px-2 py-1 rounded-lg">
                         <Star size={14} className="fill-current text-amber-500 mr-1" /> {biz.rating}
@@ -116,6 +150,9 @@ export const HomeView = ({
                   <h4 className="font-extrabold text-lg text-[#2B2B2B] mb-1 leading-tight group-hover:text-[#C65D3B] transition-colors">{business.name}</h4>
                   <p className="text-[#6B705C] font-medium text-sm flex items-center mb-2 line-clamp-1">
                     <MapPin size={12} className="mr-1 shrink-0" /> {business.address}
+                    {typeof business.distanceKm === 'number' && (
+                      <span className="ml-2 text-[#2D6A4F] font-bold shrink-0">· {business.distanceKm.toFixed(1)} km</span>
+                    )}
                   </p>
                   {business.shortDescription && (
                     <p className="text-[#6B705C]/90 text-sm mb-4 line-clamp-2 font-medium">

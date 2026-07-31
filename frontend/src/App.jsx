@@ -21,7 +21,41 @@ export default function App() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
 
+  // Geolocation: null coords = search without location bias.
+  const [location, setLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('idle'); // idle | pending | granted | denied | unsupported
+
   const activeBusiness = analyzedBusinesses.find(b => b.id === selectedBizId);
+
+  const requestLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('unsupported');
+      return;
+    }
+    setLocationStatus('pending');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationStatus('granted');
+      },
+      () => {
+        setLocation(null);
+        setLocationStatus('denied');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 },
+    );
+  };
+
+  const clearLocation = () => {
+    setLocation(null);
+    setLocationStatus('idle');
+  };
+
+  // Ask for location once on load so it's ready by the time the user searches.
+  useEffect(() => {
+    requestLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounced live search
   useEffect(() => {
@@ -35,13 +69,13 @@ export default function App() {
     }, 600);
     return () => clearTimeout(delayDebounceFn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, location]);
 
   const fetchLiveSearch = async (query) => {
     setIsLiveSearching(true);
     setShowDropdown(true);
     try {
-      const results = await liveSearch(query);
+      const results = await liveSearch(query, location);
       setLiveSearchResults(results);
     } catch (err) {
       console.error(err);
@@ -139,7 +173,10 @@ export default function App() {
                         <li key={biz.id} onClick={() => handleSelectBusiness(biz)} className="p-3 hover:bg-[#FAF8F3]/80 cursor-pointer flex justify-between items-center transition-colors">
                           <div className="flex-1 pr-2">
                             <div className="font-extrabold text-[#2B2B2B] text-sm truncate">{biz.name}</div>
-                            <div className="text-xs font-semibold text-[#6B705C] truncate">{biz.category} • {biz.address}</div>
+                            <div className="text-xs font-semibold text-[#6B705C] truncate">
+                              {biz.category} • {biz.address}
+                              {typeof biz.distanceKm === 'number' && ` · ${biz.distanceKm.toFixed(1)} km`}
+                            </div>
                           </div>
                           <div className="flex items-center text-[#2B2B2B] text-xs font-bold shrink-0 bg-[#FAF8F3] border border-[#6B705C]/10 px-1.5 py-0.5 rounded"><Star size={12} className="fill-current text-amber-500 mr-1" /> {biz.rating}</div>
                         </li>
@@ -176,6 +213,9 @@ export default function App() {
             onSelectBusiness={handleSelectBusiness}
             searchResults={searchResults}
             mockBusinesses={mockBusinesses}
+            locationStatus={locationStatus}
+            onRequestLocation={requestLocation}
+            onClearLocation={clearLocation}
           />
         )}
 

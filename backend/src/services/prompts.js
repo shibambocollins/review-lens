@@ -2,8 +2,12 @@
 // geminiSchema = Gemini-native structured output schema (strict)
 // schemaInstructions = plain-text equivalent for providers without native schema support
 
-export function liveSearchPrompt(query) {
-  const prompt = `Find or generate 4 to 6 highly realistic business profiles in South Africa (or globally if specified) that match the search query: "${query}". Provide diverse options if the query is broad.`;
+export function liveSearchPrompt(query, coords) {
+  const locationContext = coords
+    ? ` The user's current location is approximately latitude ${coords.lat}, longitude ${coords.lng}. Prioritize businesses that would realistically be near this location, use real neighborhood/suburb/street names appropriate for that area in the generated addresses, and estimate each business's straight-line distance from the user in kilometers as "distanceKm".`
+    : '';
+
+  const prompt = `Find or generate 4 to 6 highly realistic business profiles in South Africa (or globally if specified) that match the search query: "${query}".${locationContext} Provide diverse options if the query is broad.`;
 
   const geminiSchema = {
     type: 'ARRAY',
@@ -17,13 +21,14 @@ export function liveSearchPrompt(query) {
         rating: { type: 'NUMBER' },
         reviewCount: { type: 'INTEGER' },
         shortDescription: { type: 'STRING' },
+        distanceKm: { type: 'NUMBER' },
       },
       required: ['id', 'name', 'category', 'address', 'rating', 'reviewCount', 'shortDescription'],
     },
   };
 
 const schemaInstructions = `A single JSON object with exactly one field, "results", containing an array of 4-6 objects:
-{ "results": [ { "id": string, "name": string, "category": string, "address": string, "rating": number (out of 5), "reviewCount": integer, "shortDescription": string }, ... ] }`;
+{ "results": [ { "id": string, "name": string, "category": string, "address": string, "rating": number (out of 5), "reviewCount": integer, "shortDescription": string, "distanceKm": number (only include if a user location was given) }, ... ] }`;
 
   return { prompt, geminiSchema, schemaInstructions };
 }
