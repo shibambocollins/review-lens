@@ -2,12 +2,16 @@
 // geminiSchema = Gemini-native structured output schema (strict)
 // schemaInstructions = plain-text equivalent for providers without native schema support
 
-export function liveSearchPrompt(query, coords) {
+export function liveSearchPrompt(query, coords, relatedTo) {
   const locationContext = coords
     ? ` The user's current location is approximately latitude ${coords.lat}, longitude ${coords.lng}. Prioritize businesses that would realistically be near this location, use real neighborhood/suburb/street names appropriate for that area in the generated addresses, and estimate each business's straight-line distance from the user in kilometers as "distanceKm".`
     : '';
 
-  const prompt = `Find or generate 4 to 6 highly realistic business profiles in South Africa (or globally if specified) that match the search query: "${query}".${locationContext} Provide diverse options if the query is broad.`;
+  const relationContext = relatedTo?.name
+    ? ` These results are being considered as competitors to compare against "${relatedTo.name}"${relatedTo.category ? ` (a ${relatedTo.category})` : ''} — where it's consistent with the search query, prefer plausible real-world competitors or similar businesses in the same category.`
+    : '';
+
+  const prompt = `Find or generate 4 to 6 highly realistic business profiles in South Africa (or globally if specified) that match the search query: "${query}".${locationContext}${relationContext} Provide diverse options if the query is broad.`;
 
   const geminiSchema = {
     type: 'ARRAY',

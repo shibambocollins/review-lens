@@ -15,9 +15,20 @@ async function post(path, body) {
   return res.json();
 }
 
-/** Live search dropdown - returns a short list of business candidates. `coords` ({ lat, lng }) is optional and biases results toward the user's location. */
-export async function liveSearch(query, coords) {
-  const body = coords ? { query, lat: coords.lat, lng: coords.lng } : { query };
+/**
+ * Live search dropdown - returns a short list of business candidates.
+ * `coords` ({ lat, lng }) is optional and biases results toward the user's location.
+ * `relatedTo` ({ name, category }) is optional and softly biases results toward competitors of that business.
+ */
+export async function liveSearch(query, coords, relatedTo) {
+  const body = { query };
+  if (coords) {
+    body.lat = coords.lat;
+    body.lng = coords.lng;
+  }
+  if (relatedTo?.name) {
+    body.relatedTo = { name: relatedTo.name, category: relatedTo.category };
+  }
   const { results } = await post('/search', body);
   return results;
 }

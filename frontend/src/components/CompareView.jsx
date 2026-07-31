@@ -1,16 +1,71 @@
-import { useState } from 'react';
-import { Search, Star, ArrowLeft, Loader2 } from 'lucide-react';
-import { compareBusiness } from '../services/api.js';
+import { useState, useEffect } from 'react';
+import { Search, Star, MapPin, ArrowLeft, Loader2 } from 'lucide-react';
+import { compareBusiness, liveSearch, analyzeBusiness } from '../services/api.js';
 
-export const CompareView = ({ baseBusiness, onBack }) => {
+export const CompareView = ({ baseBusiness, onBack, location }) => {
   const [competitor, setCompetitor] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
 
+  const [liveSearchResults, setLiveSearchResults] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isLiveSearching, setIsLiveSearching] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  // Debounced live search, biased by wording, the user's location, and (softly) by the base business being compared.
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length > 2) {
+        fetchLiveSearch(searchQuery);
+      } else {
+        setLiveSearchResults([]);
+        setShowDropdown(false);
+      }
+    }, 600);
+    return () => clearTimeout(delayDebounceFn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, location]);
+
+  const fetchLiveSearch = async (query) => {
+    setIsLiveSearching(true);
+    setShowDropdown(true);
+    try {
+      const results = await liveSearch(query, location, {
+        name: baseBusiness.name,
+        category: baseBusiness.category,
+      });
+      setLiveSearchResults(results);
+    } catch (err) {
+      console.error(err);
+      setLiveSearchResults([]);
+    } finally {
+      setIsLiveSearching(false);
+    }
+  };
+
+  const handleSelectCompetitor = async (business) => {
+    setShowDropdown(false);
+    setIsSelecting(true);
+    setError(null);
+    try {
+      const fullBusiness = await analyzeBusiness(business);
+      setCompetitor({
+        ...fullBusiness,
+        image: fullBusiness.image || `https://picsum.photos/seed/${fullBusiness.id || 'comp'}/800/400`,
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Could not analyze that business. Try a different one.');
+    } finally {
+      setIsSelecting(false);
+    }
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+    setShowDropdown(false);
     setIsSearching(true);
     setError(null);
     try {
@@ -100,7 +155,12 @@ export const CompareView = ({ baseBusiness, onBack }) => {
 
         {/* Business 2 (Competitor) */}
         <div className="p-6">
-          {!b2 ? (
+          {isSelecting ? (
+            <div className="h-full flex flex-col justify-center items-center min-h-[300px]">
+              <Loader2 className="w-10 h-10 text-[#2D6A4F] animate-spin mb-4" />
+              <p className="text-sm font-semibold text-[#6B705C]">Analyzing competitor...</p>
+            </div>
+          ) : !b2 ? (
             <div className="h-full flex flex-col justify-center items-center min-h-[300px]">
               <h3 className="font-extrabold text-lg text-[#2B2B2B] mb-2 text-center">Compare Against...</h3>
               <p className="text-sm font-medium text-[#6B705C] mb-6 text-center">Search for a competitor to compare</p>
@@ -110,11 +170,46 @@ export const CompareView = ({ baseBusiness, onBack }) => {
                   placeholder="e.g. KFC, Nando's..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => { if (liveSearchResults.length > 0) setShowDropdown(true); }}
                   className="w-full pl-4 pr-10 py-2 border border-[#6B705C]/30 rounded-lg focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] outline-none text-sm font-medium text-[#2B2B2B]"
                 />
                 <button type="submit" disabled={isSearching || !searchQuery.trim()} className="absolute right-2 top-1.5 p-1 text-[#6B705C] hover:text-[#2D6A4F] disabled:opacity-50">
                   {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 </button>
+
+                {showDropdown && searchQuery && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#FFFFFF] rounded-xl shadow-xl border border-[#6B705C]/20 overflow-hidden z-50 text-left animate-fade-in-up">
+                    {isLiveSearching ? (
+                      <div className="p-4 text-[#6B705C] text-xs font-bold flex items-center justify-center">
+                        <Loader2 className="animate-spin mr-2 text-[#2D6A4F]" size={14} /> Finding businesses...
+                      </div>
+                    ) : liveSearchResults.length > 0 ? (
+                      <ul className="max-h-72 overflow-y-auto divide-y divide-[#6B705C]/10">
+                        {liveSearchResults.map((biz) => (
+                          <li
+                            key={biz.id}
+                            onClick={() => handleSelectCompetitor(biz)}
+                            className="p-3 hover:bg-[#FAF8F3] cursor-pointer transition-colors"
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="font-extrabold text-[#2B2B2B] text-sm truncate">{biz.name}</div>
+                              <div className="flex items-center text-[10px] font-bold text-[#2B2B2B] shrink-0 bg-[#FAF8F3] border border-[#6B705C]/10 px-1.5 py-0.5 rounded">
+                                <Star size={10} className="fill-current text-amber-500 mr-1" /> {biz.rating}
+                              </div>
+                            </div>
+                            <div className="text-xs font-semibold text-[#6B705C] flex items-center mt-1 truncate">
+                              <MapPin size={10} className="mr-1 shrink-0" />
+                              {biz.category} • {biz.address}
+                              {typeof biz.distanceKm === 'number' && ` · ${biz.distanceKm.toFixed(1)} km`}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-4 text-[#6B705C] font-semibold text-xs text-center">No businesses found.</div>
+                    )}
+                  </div>
+                )}
               </form>
               {error && <p className="text-[#C65D3B] text-xs font-semibold mt-3 text-center max-w-xs">{error}</p>}
             </div>

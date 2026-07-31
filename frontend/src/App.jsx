@@ -232,6 +232,7 @@ export default function App() {
           <CompareView
             baseBusiness={activeBusiness}
             onBack={() => setView('dashboard')}
+            location={location}
           />
         )}
       </main>

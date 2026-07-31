@@ -84,11 +84,24 @@ AI-generated, just steered by coordinates:
 - `liveSearch(query, coords)` in `api.js` only adds `lat`/`lng` to the POST body when `coords` is
   non-null — `routes/search.js` treats missing/non-finite `lat`/`lng` as "no location" rather than
   erroring.
-- `liveSearchPrompt(query, coords)` in `prompts.js` appends location context to the prompt when
-  coords are present, asking the model for realistic nearby neighborhoods and a `distanceKm`
-  estimate per result. `distanceKm` is optional in both schemas (not in `required`) since it's only
-  meaningful when coords were supplied — don't make it required or plain text search without
-  location will fail schema validation.
+- `liveSearchPrompt(query, coords, relatedTo)` in `prompts.js` appends location context to the
+  prompt when coords are present, asking the model for realistic nearby neighborhoods and a
+  `distanceKm` estimate per result. `distanceKm` is optional in both schemas (not in `required`)
+  since it's only meaningful when coords were supplied — don't make it required or plain text
+  search without location will fail schema validation.
+- `relatedTo` (`{ name, category }`) is the same `liveSearch()`/`liveSearchPrompt()` path reused by
+  `CompareView` — it softly biases results toward competitors of the business being compared
+  ("where consistent with the search query"), it never overrides the literal typed query. This is
+  why searching "burger" while comparing a coffee shop still returns burger places, but a vague
+  query like "highly rated place" leans toward coffee shops. `CompareView` gets `location` passed
+  down as a prop from `App.jsx` rather than requesting geolocation itself — there's only one
+  geolocation prompt for the whole app, fired once from `App.jsx` on mount.
+- Picking a result from `CompareView`'s live-search dropdown calls `analyzeBusiness()` (the same
+  `/api/analyze` full-analysis endpoint the primary business uses), not `/api/compare` — this gives
+  more accurate results since the business's real fields (address, rating, category from the search
+  step) seed the analysis instead of asking the model to invent a business from a bare name.
+  `/api/compare` (`compareBusiness()`) is kept only as the fallback for pressing Enter without
+  picking a suggestion.
 
 ## Load More Reviews
 
