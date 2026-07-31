@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import {
@@ -54,11 +54,42 @@ export const DashboardView = ({
   const [isLoadingMoreReviews, setIsLoadingMoreReviews] = useState(false);
   const [reviewsExhausted, setReviewsExhausted] = useState(false);
 
-  // Reset the review list when the user switches to a different business.
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sentimentFilter, setSentimentFilter] = useState("all");
+  const [aspectFilter, setAspectFilter] = useState("all");
+
+  // Reset the review list and filters when the user switches to a different business.
   useEffect(() => {
     setReviews(business.reviews || []);
     setReviewsExhausted(false);
+    setIsFilterOpen(false);
+    setSentimentFilter("all");
+    setAspectFilter("all");
   }, [business.id]);
+
+  const availableAspects = useMemo(
+    () => Array.from(new Set(reviews.flatMap((r) => r.aspects || []))).sort(),
+    [reviews],
+  );
+
+  const filteredReviews = useMemo(
+    () =>
+      reviews.filter(
+        (r) =>
+          (sentimentFilter === "all" || r.sentiment === sentimentFilter) &&
+          (aspectFilter === "all" || (r.aspects || []).includes(aspectFilter)),
+      ),
+    [reviews, sentimentFilter, aspectFilter],
+  );
+
+  const hasActiveFilter = sentimentFilter !== "all" || aspectFilter !== "all";
+  const activeFilterCount =
+    (sentimentFilter !== "all" ? 1 : 0) + (aspectFilter !== "all" ? 1 : 0);
+
+  const clearFilters = () => {
+    setSentimentFilter("all");
+    setAspectFilter("all");
+  };
 
   const handleLoadMoreReviews = async () => {
     setIsLoadingMoreReviews(true);
@@ -652,15 +683,111 @@ export const DashboardView = ({
                   <h3 className="font-bold text-[#2B2B2B]/90 flex items-center">
                     <MessageSquare size={18} className="mr-2 text-[#6B705C]" />{" "}
                     AI-Processed Reviews
+                    <span className="ml-2 text-xs font-semibold text-[#6B705C]/70">
+                      ({filteredReviews.length}
+                      {filteredReviews.length !== reviews.length
+                        ? ` of ${reviews.length}`
+                        : ""}
+                      )
+                    </span>
                   </h3>
-                  <div className="flex space-x-2">
-                    <button className="flex items-center px-3 py-1.5 text-sm font-semibold text-[#6B705C] bg-[#FFFFFF] border border-[#6B705C]/30 rounded-lg hover:bg-[#FAF8F3]">
+                  <div className="flex space-x-2 relative">
+                    <button
+                      onClick={() => setIsFilterOpen((v) => !v)}
+                      className={`relative z-50 flex items-center px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
+                        hasActiveFilter
+                          ? "text-[#2D6A4F] bg-[#2D6A4F]/10 border-[#2D6A4F]/30"
+                          : "text-[#6B705C] bg-[#FFFFFF] border-[#6B705C]/30 hover:bg-[#FAF8F3]"
+                      }`}
+                    >
                       <Filter size={14} className="mr-1" /> Filter
+                      {hasActiveFilter ? ` (${activeFilterCount})` : ""}
                     </button>
+
+                    {isFilterOpen && (
+                      <>
+                        {/* z-40 backdrop closes the panel on outside click; the Filter button is z-50 so it stays clickable to toggle closed too */}
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setIsFilterOpen(false)}
+                        />
+                        <div className="absolute right-0 top-full mt-2 w-72 bg-[#FFFFFF] border border-[#6B705C]/20 rounded-xl shadow-xl z-50 p-4 text-left">
+                          <div className="mb-4">
+                            <div className="text-xs font-extrabold text-[#6B705C] uppercase tracking-wide mb-2">
+                              Sentiment
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {["all", "positive", "neutral", "negative"].map(
+                                (s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() => setSentimentFilter(s)}
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold border capitalize transition-colors ${
+                                      sentimentFilter === s
+                                        ? "bg-[#2D6A4F] text-[#FFFFFF] border-[#2D6A4F]"
+                                        : "bg-[#FAF8F3] text-[#6B705C] border-[#6B705C]/20 hover:border-[#6B705C]/40"
+                                    }`}
+                                  >
+                                    {s}
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          </div>
+
+                          {availableAspects.length > 0 && (
+                            <div>
+                              <div className="text-xs font-extrabold text-[#6B705C] uppercase tracking-wide mb-2">
+                                Aspect
+                              </div>
+                              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                <button
+                                  onClick={() => setAspectFilter("all")}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
+                                    aspectFilter === "all"
+                                      ? "bg-[#2D6A4F] text-[#FFFFFF] border-[#2D6A4F]"
+                                      : "bg-[#FAF8F3] text-[#6B705C] border-[#6B705C]/20 hover:border-[#6B705C]/40"
+                                  }`}
+                                >
+                                  All
+                                </button>
+                                {availableAspects.map((aspect) => (
+                                  <button
+                                    key={aspect}
+                                    onClick={() => setAspectFilter(aspect)}
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
+                                      aspectFilter === aspect
+                                        ? "bg-[#2D6A4F] text-[#FFFFFF] border-[#2D6A4F]"
+                                        : "bg-[#FAF8F3] text-[#6B705C] border-[#6B705C]/20 hover:border-[#6B705C]/40"
+                                    }`}
+                                  >
+                                    {aspect}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {hasActiveFilter && (
+                            <button
+                              onClick={clearFilters}
+                              className="mt-4 text-xs font-bold text-[#C65D3B] hover:underline"
+                            >
+                              Clear filters
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
+                {filteredReviews.length === 0 && (
+                  <div className="p-10 text-center text-[#6B705C] font-semibold text-sm">
+                    No reviews match this filter.
+                  </div>
+                )}
                 <div className="divide-y divide-[#6B705C]/10">
-                  {reviews.map((review) => (
+                  {filteredReviews.map((review) => (
                     <div
                       key={review.id}
                       className="p-6 hover:bg-[#FAF8F3]/50 transition-colors"
