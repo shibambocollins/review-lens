@@ -178,6 +178,44 @@ export function competitorAnalysisPrompt(searchQuery) {
   return { prompt, geminiSchema, schemaInstructions };
 }
 
+export function moreReviewsPrompt(business, excludeReviews = []) {
+  const excludeList = excludeReviews.length
+    ? ` Do not repeat or closely paraphrase these already-shown reviews — write completely new ones with different wording, scenarios, and details: ${excludeReviews
+        .slice(0, 20)
+        .map((r) => `"${r.text}"`)
+        .join(' | ')}.`
+    : '';
+
+  const prompt = `Generate 4 additional, brand-new realistic customer reviews for the business "${business.name}" (${business.category}) located at "${business.address}", consistent with its ${business.rating} rating.${excludeList} Vary the sentiment, length, and specific aspects mentioned across the 4 new reviews.`;
+
+  const geminiSchema = {
+    type: 'OBJECT',
+    properties: {
+      reviews: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            id: { type: 'STRING' },
+            text: { type: 'STRING' },
+            rating: { type: 'INTEGER' },
+            sentiment: { type: 'STRING' },
+            date: { type: 'STRING' },
+            aspects: { type: 'ARRAY', items: { type: 'STRING' } },
+          },
+          required: ['id', 'text', 'rating', 'sentiment', 'date', 'aspects'],
+        },
+      },
+    },
+    required: ['reviews'],
+  };
+
+  const schemaInstructions = `A single JSON object with exactly one field, "reviews", containing an array of 4 new objects:
+{ "reviews": [ { "id": string, "text": string, "rating": integer, "sentiment": "positive"|"neutral"|"negative", "date": "YYYY-MM-DD", "aspects": [string,...] }, ... ] }`;
+
+  return { prompt, geminiSchema, schemaInstructions };
+}
+
 /** Forces sentiment.positive + neutral + negative to sum to exactly 100, rescaling proportionally. */
 export function normalizeSentiment(sentiment) {
   if (!sentiment) return sentiment;

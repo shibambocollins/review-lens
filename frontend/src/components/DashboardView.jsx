@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import {
@@ -16,6 +16,7 @@ import {
   Filter,
   Zap,
   Activity,
+  Loader2,
 } from "lucide-react";
 import {
   PieChart as RechartsPieChart,
@@ -35,6 +36,9 @@ import {
 import { Card } from "./Card.jsx";
 import { Badge } from "./Badge.jsx";
 import { COLORS } from "../data/colors.js";
+import { loadMoreReviews } from "../services/api.js";
+
+const MAX_REVIEWS = 24;
 
 export const DashboardView = ({
   business,
@@ -45,6 +49,45 @@ export const DashboardView = ({
   const [activeTab, setActiveTab] = useState("overview");
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef(null);
+
+  const [reviews, setReviews] = useState(business.reviews || []);
+  const [isLoadingMoreReviews, setIsLoadingMoreReviews] = useState(false);
+  const [reviewsExhausted, setReviewsExhausted] = useState(false);
+
+  // Reset the review list when the user switches to a different business.
+  useEffect(() => {
+    setReviews(business.reviews || []);
+    setReviewsExhausted(false);
+  }, [business.id]);
+
+  const handleLoadMoreReviews = async () => {
+    setIsLoadingMoreReviews(true);
+    try {
+      const newReviews = await loadMoreReviews(business, reviews);
+      if (!newReviews.length) {
+        setReviewsExhausted(true);
+        triggerToast("No more new reviews to load.", "info");
+        return;
+      }
+
+      const existingIds = new Set(reviews.map((r) => r.id));
+      const deduped = newReviews.map((r, idx) =>
+        !r.id || existingIds.has(r.id)
+          ? { ...r, id: `${business.id || "biz"}-extra-${Date.now()}-${idx}` }
+          : r,
+      );
+
+      setReviews((prev) => [...prev, ...deduped]);
+      if (reviews.length + deduped.length >= MAX_REVIEWS) {
+        setReviewsExhausted(true);
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Failed to load more reviews - check the backend is running.", "error");
+    } finally {
+      setIsLoadingMoreReviews(false);
+    }
+  };
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -617,7 +660,7 @@ export const DashboardView = ({
                   </div>
                 </div>
                 <div className="divide-y divide-[#6B705C]/10">
-                  {business.reviews.map((review) => (
+                  {reviews.map((review) => (
                     <div
                       key={review.id}
                       className="p-6 hover:bg-[#FAF8F3]/50 transition-colors"
@@ -664,11 +707,24 @@ export const DashboardView = ({
                     </div>
                   ))}
                 </div>
-                <div className="p-4 text-center bg-[#FAF8F3]/80 border-t border-[#6B705C]/20 print:hidden">
-                  <button className="text-[#2D6A4F] text-sm font-bold hover:underline">
-                    Load More Reviews...
-                  </button>
-                </div>
+                {!reviewsExhausted && (
+                  <div className="p-4 text-center bg-[#FAF8F3]/80 border-t border-[#6B705C]/20 print:hidden">
+                    <button
+                      onClick={handleLoadMoreReviews}
+                      disabled={isLoadingMoreReviews}
+                      className="inline-flex items-center justify-center text-[#2D6A4F] text-sm font-bold hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                    >
+                      {isLoadingMoreReviews ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin mr-2" />
+                          Loading more reviews...
+                        </>
+                      ) : (
+                        "Load More Reviews..."
+                      )}
+                    </button>
+                  </div>
+                )}
               </Card>
             </div>
           )}

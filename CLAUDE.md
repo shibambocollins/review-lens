@@ -32,7 +32,7 @@ backend/    Express API — the only place AI provider keys exist
     aiFallback.js           generateAnalysis({ prompt, geminiSchema, schemaInstructions, order })
     prompts.js               prompt text + schema (Gemini-native + plain-text) per task
     extractJson.js           strips code fences, parses model text as JSON
-  src/routes/{search,analyze,compare}.js
+  src/routes/{search,analyze,compare,reviews}.js
 frontend/   Vite + React
   src/services/api.js       the ONLY file that calls fetch() against our backend
   src/components/           Card, Badge, Toast, HomeView, DashboardView, CompareView
@@ -89,6 +89,18 @@ AI-generated, just steered by coordinates:
   estimate per result. `distanceKm` is optional in both schemas (not in `required`) since it's only
   meaningful when coords were supplied — don't make it required or plain text search without
   location will fail schema validation.
+
+## Load More Reviews
+
+`POST /api/reviews/more` (`routes/reviews.js` → `moreReviewsPrompt` in `prompts.js`) generates 4
+more AI reviews for a business, distinct from ones already shown — it passes the existing reviews'
+text back into the prompt as an exclusion list so the model doesn't repeat itself. `DashboardView`
+owns the review list as local state (`reviews`, seeded from `business.reviews`, reset on
+`business.id` change) rather than mutating the parent's `analyzedBusinesses` — reviews loaded this
+way aren't persisted if you navigate away and back, which is fine since nothing here is persisted
+anyway. Client-side id collisions (the model reusing `r1`, `r2`, ...) are rewritten to a unique id
+before appending. Capped at `MAX_REVIEWS` (24) or whenever a fetch returns zero new reviews,
+whichever comes first — the button hides itself past that point instead of retrying forever.
 
 ## Two bugs already fixed here — don't reintroduce them
 

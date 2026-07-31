@@ -4,6 +4,7 @@ import { config } from "./src/config/index.js";
 import searchRoute from "./src/routes/search.js";
 import analyzeRoute from "./src/routes/analyze.js";
 import compareRoute from "./src/routes/compare.js";
+import reviewsRoute from "./src/routes/reviews.js";
 import { errorHandler } from "./src/middleware/errorHandler.js";
 
 const app = express();
@@ -37,6 +38,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/search", searchRoute);
 app.use("/api/analyze", analyzeRoute);
 app.use("/api/compare", compareRoute);
+app.use("/api/reviews", reviewsRoute);
 
 app.use(errorHandler);
 

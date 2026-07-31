@@ -33,3 +33,9 @@ export async function compareBusiness(query) {
   const { business } = await post('/compare', { query });
   return business;
 }
+
+/** Fetches 4 more AI-generated reviews for a business, distinct from the ones already shown. */
+export async function loadMoreReviews(business, existingReviews) {
+  const { reviews } = await post('/reviews/more', { business, existingReviews });
+  return reviews;
+}
