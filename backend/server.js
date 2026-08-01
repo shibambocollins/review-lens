@@ -31,7 +31,6 @@ app.get("/api/health", (req, res) => {
       cloudflare: Boolean(
         config.cloudflare.accountId && config.cloudflare.apiToken,
       ),
-      googlePlaces: Boolean(config.googlePlaces.apiKey),
     },
   });
 });

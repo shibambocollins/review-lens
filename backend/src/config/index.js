@@ -19,7 +19,4 @@ export const config = {
     apiToken: process.env.CLOUDFLARE_API_TOKEN || '',
     model: process.env.CLOUDFLARE_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast',
   },
-  googlePlaces: {
-    apiKey: process.env.GOOGLE_PLACES_API_KEY || '',
-  },
 };

@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { generateAnalysis } from '../services/aiFallback.js';
 import { competitorAnalysisPrompt, normalizeSentiment } from '../services/prompts.js';
-import { findExactBusinessPhoto } from '../services/googlePlaces.js';
 import { getCategoryImage } from '../services/categoryImage.js';
 
 const router = Router();
@@ -21,8 +20,7 @@ router.post('/', async (req, res, next) => {
       data.sentiment = normalizeSentiment(data.sentiment);
     }
 
-    const image =
-      (await findExactBusinessPhoto(data)) || getCategoryImage(data.category, data.name);
+    const image = getCategoryImage(data.category, data.name);
 
     const fullBusiness = { ...data, image };
 
