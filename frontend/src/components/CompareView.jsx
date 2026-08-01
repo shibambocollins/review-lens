@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Star, MapPin, ArrowLeft, Loader2 } from 'lucide-react';
 import { compareBusiness, liveSearch, analyzeBusiness } from '../services/api.js';
+import { getCategoryImage } from '../data/categoryImages.js';
 
 export const CompareView = ({ baseBusiness, onBack, location }) => {
   const [competitor, setCompetitor] = useState(null);
@@ -52,7 +53,7 @@ export const CompareView = ({ baseBusiness, onBack, location }) => {
       const fullBusiness = await analyzeBusiness(business);
       setCompetitor({
         ...fullBusiness,
-        image: fullBusiness.image || `https://picsum.photos/seed/${fullBusiness.id || 'comp'}/800/400`,
+        image: fullBusiness.image || getCategoryImage(fullBusiness.category, fullBusiness.name),
       });
     } catch (err) {
       console.error(err);
@@ -72,7 +73,7 @@ export const CompareView = ({ baseBusiness, onBack, location }) => {
       const analytics = await compareBusiness(searchQuery);
       const fullBusiness = {
         ...analytics,
-        image: analytics.image || `https://picsum.photos/seed/${analytics.id || 'comp'}/800/400`,
+        image: analytics.image || getCategoryImage(analytics.category, analytics.name),
       };
       setCompetitor(fullBusiness);
     } catch (err) {

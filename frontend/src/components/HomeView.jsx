@@ -1,6 +1,7 @@
 import { Search, Star, MapPin, Loader2 } from 'lucide-react';
 import { Badge } from './Badge.jsx';
 import { Card } from './Card.jsx';
+import { getCategoryImage } from '../data/categoryImages.js';
 
 export const HomeView = ({
   searchQuery,
@@ -124,7 +125,7 @@ export const HomeView = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {businessesToShow.map(business => {
             const Icon = business.icon || Star;
-            const imageUrl = business.image || `https://picsum.photos/seed/${business.id}/800/400`;
+            const imageUrl = business.image || getCategoryImage(business.category, business.name);
 
             return (
               <Card

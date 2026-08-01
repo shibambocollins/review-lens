@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { generateAnalysis } from '../services/aiFallback.js';
 import { competitorAnalysisPrompt, normalizeSentiment } from '../services/prompts.js';
+import { findExactBusinessPhoto } from '../services/googlePlaces.js';
+import { getCategoryImage } from '../services/categoryImage.js';
 
 const router = Router();
 
@@ -19,10 +21,10 @@ router.post('/', async (req, res, next) => {
       data.sentiment = normalizeSentiment(data.sentiment);
     }
 
-    const fullBusiness = {
-      ...data,
-      image: `https://picsum.photos/seed/${encodeURIComponent(data.id || query)}/800/400`,
-    };
+    const image =
+      (await findExactBusinessPhoto(data)) || getCategoryImage(data.category, data.name);
+
+    const fullBusiness = { ...data, image };
 
     res.json({ business: fullBusiness, provider });
   } catch (err) {

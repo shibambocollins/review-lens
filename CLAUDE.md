@@ -145,10 +145,33 @@ whichever comes first — the button hides itself past that point instead of ret
 - Render's free tier spins down when idle — first request after inactivity takes 10–30s. Expected,
   not a bug.
 
+## Business photos
+
+Two-tier fallback, resolved server-side in `routes/analyze.js` and `routes/compare.js`:
+
+1. **Exact photo** — `services/googlePlaces.js`'s `findExactBusinessPhoto(business)` calls Google's
+   Find Place From Text API with the business's name + address, then resolves the legacy Place
+   Photo endpoint's 302 redirect server-side to get the real (key-free) CDN image URL — the API
+   key never gets embedded in a URL sent to the browser. Requires `GOOGLE_PLACES_API_KEY` (see
+   `.env.example`); without it, `findExactBusinessPhoto` returns `null` immediately and every
+   business always falls through to step 2. `ZERO_RESULTS` (expected — most businesses here are
+   AI-invented and don't exist in Places) fails silently; any other non-`OK` status
+   (`REQUEST_DENIED`, `OVER_QUERY_LIMIT`, ...) logs a warning since that means the key/billing
+   setup needs attention.
+2. **Category match** — `services/categoryImage.js` (`getCategoryImage`) does keyword matching
+   against the business's category/name and returns a curated, verified-live Unsplash photo (coffee
+   shop → coffee photo, burger joint → burger photo, etc.), most-specific-keyword-first, with a
+   generic storefront photo as the ultimate default. Mirrored client-side in
+   `frontend/src/data/categoryImages.js` for the home-page live-search result cards, which show a
+   photo before any backend analysis call happens (so there's no Places-lookup opportunity for
+   them — category match only).
+
+`/api/search` (the per-keystroke live search) never does a Places lookup — that would mean an
+extra network round-trip per candidate on every debounced keystroke. Real/category photos only
+happen for `/api/analyze` and `/api/compare`, which fire once per business.
+
 ## Known placeholders / intentionally not built yet
 
-- Business images are `picsum.photos` random seeded placeholders, not real photos. Don't "fix"
-  this by adding a real image API without being asked — it's a known, accepted gap for now.
 - No rate limiting on backend routes. No database. No auth. These are deliberate, not oversights —
   don't add them speculatively.
 
