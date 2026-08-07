@@ -1,4 +1,7 @@
 # ReviewLens — AI Review Intelligence Platform
+
+<img width="1517" height="737" alt="image" src="https://github.com/user-attachments/assets/e229761f-60d6-4bf9-bf6d-b864f59037f7" />
+
  
 **Live site:** https://www.ratingslensai.tech
 **Backend API:** https://review-lens-t395.onrender.com/api
