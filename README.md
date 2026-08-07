@@ -15,24 +15,6 @@ talks to that backend, never to Gemini/Groq/Cloudflare directly.
  
 ---
  
-## Table of contents
- 
-- [ReviewLens — AI Review Intelligence Platform](#reviewlens--ai-review-intelligence-platform)
-  - [Table of contents](#table-of-contents)
-  - [Why a backend exists](#why-a-backend-exists)
-  - [Architecture](#architecture)
-  - [Project structure](#project-structure)
-  - [Running it locally](#running-it-locally)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-  - [Environment variables](#environment-variables)
-  - [The AI provider fallback chain](#the-ai-provider-fallback-chain)
-  - [Known issues we hit and fixed](#known-issues-we-hit-and-fixed)
-  - [Deployment (current live setup)](#deployment-current-live-setup)
-  - [Troubleshooting](#troubleshooting)
-  - [Roadmap / not built yet](#roadmap--not-built-yet)
-  - [Tech stack](#tech-stack)
----
  
 ## Why a backend exists
  
